@@ -37,7 +37,13 @@ def parse_user_page(url):
 
 def get_twitter_followers(handle):
     """Return number of twitter handlers for a given handle."""
-    pass
+    twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
+    try:
+        t = requests.get(twitter_url + handle)
+        return t.json[0]['followers_count']
+    except:
+        #In case user is not registered anymore or Twitter 404s
+        return "FUBAR"
 
 def parse():
     """Parse the top users page and get list of users. For each user,
@@ -64,9 +70,14 @@ def parse():
                 user_url = user_link['href']
                 user_name = user_url.replace('/', '')
                 user_twitter = parse_user_page(user_url)
-                user_twitter_followers = get_twitter_followers(user_twitter)
+                if user_twitter is not None:
+                    user_twitter_followers = get_twitter_followers(user_twitter)
+                else:
+                    user_twitter_followers = "N/A"
 
-                print "User name: %s\tTwitter Handle: %s" % (user_name, user_twitter)
+                print "User name: %s\tTwitter Handle: %s\t Followers: %s" % (user_name, user_twitter, user_twitter_followers)
+
+                writer.writerow([user_name, user_twitter, user_twitter_followers])
 
 if __name__ == "__main__":
     parse()
