@@ -18,7 +18,7 @@ number_of_pages = 2
 #Page number to start on
 start_page = 1
 #File location to place output
-outfile = r'/home/ravenel/code/BehanceTopUserFollowers//output.csv'
+outfile = r'/home/ravenel/code/BehanceTopUserFollowers/output.csv'
 
 def RateLimited(maxPerSecond):
     """Rate limit decorator"""
@@ -57,6 +57,7 @@ def parse_user_page(url):
     else:
         return "Error: %s" % u.status_code
 
+#Rate limit to 150 requests/hour for Twitter
 @RateLimited(0.04)
 def get_twitter_followers(handle):
     """Return number of twitter handlers for a given handle."""
