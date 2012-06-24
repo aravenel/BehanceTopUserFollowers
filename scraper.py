@@ -15,6 +15,8 @@ root_url = 'http://www.behance.net/?content=users&sort=views&time=all&page='
 user_page_root_url = r'http://www.behance.net'
 #Number of pages to check
 number_of_pages = 2
+#Page number to start on
+start_page = 1
 #File location to place output
 outfile = r'/home/ravenel/code/BehanceTopUserFollowers//output.csv'
 
@@ -27,6 +29,7 @@ def RateLimited(maxPerSecond):
             elapsed = time.clock() - lastTimeCalled[0]
             leftToWait = minInterval - elapsed
             if leftToWait > 0:
+                print "Rate limited: sleep for %s seconds..." % leftToWait
                 time.sleep(leftToWait)
             ret = func(*args, **kwargs)
             lastTimeCalled[0] = time.clock()
@@ -54,7 +57,7 @@ def parse_user_page(url):
     else:
         return "Error: %s" % u.status_code
 
-#@RateLimited(0.04)
+@RateLimited(0.04)
 def get_twitter_followers(handle):
     """Return number of twitter handlers for a given handle."""
     twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
@@ -82,7 +85,7 @@ def parse():
         writer.writerow(['User Name', 'Twitter Handle', 'Number of Followers'])
 
         #Walk through the user pages
-        for page_num in range(1, number_of_pages + 1):
+        for page_num in range(start_page, number_of_pages + 1):
             page_url = root_url + str(page_num)
             #Get the list of users from the page
             r = requests.get(page_url)
