@@ -2,4 +2,4 @@
 *.swp
 venv
 build
-output.csv
+*.csv
