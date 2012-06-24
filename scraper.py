@@ -15,7 +15,7 @@ user_page_root_url = r'http://www.behance.net'
 #Number of pages to check
 number_of_pages = 2
 #File location to place output
-outfile = r'/home/ravenel/code/behancescraper/output.csv'
+outfile = r'/home/ravenel/code/BehanceTopUserFollowers//output.csv'
 
 def parse_user_page(url):
     """Parse a single user profile page and return their twitter handle if 
