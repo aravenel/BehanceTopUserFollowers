@@ -83,7 +83,7 @@ def _twitterfy_chunk(chunk):
     """Take a chunk of the user dict and update it with twitter data."""
 
     #Mapping of handle to username to associate followers back to behance usernames
-    handle_mapping = dict((v['twitter_handle'], k) for (k, v) in chunk.items())
+    handle_mapping = dict((v['twitter_handle'].upper(), k) for (k, v) in chunk.items())
     handle_list = [v['twitter_handle'] for v in chunk.values() if v['twitter_handle'] is not None]
 
     #Call twitter API
@@ -91,7 +91,7 @@ def _twitterfy_chunk(chunk):
 
     #Update chunk
     for handle, followers in twitter_followers.items():
-        chunk[handle_mapping[handle]]['twitter_followers'] = followers
+        chunk[handle_mapping[handle.upper()]]['twitter_followers'] = followers
 
     return chunk
 
