@@ -1,7 +1,5 @@
-from BeautifulSoup import BeautifulSoup
 import requests
 import csv
-import re
 import time
 
 ##################################################
@@ -19,6 +17,19 @@ number_of_pages = 2
 start_page = 1
 #File location to place output
 outfile = r'/home/ravenel/code/BehanceTopUserFollowers/output.csv'
+#Location of csv file with behance names, twitter handles, views
+src = r''
+
+def chunks(l, n=100):
+    """Yield n-sized chunks from list l"""
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+def chunk_dict(d, n=100):
+    """Yield n-sized chunks of dict d"""
+    keys = d.keys()
+    for i in xrange(0, len(d), n):
+        yield dict((k, v) for (k, v) in d.items() if k in keys[i:i+n])
 
 def RateLimited(maxPerSecond):
     """Rate limit decorator"""
@@ -37,78 +48,93 @@ def RateLimited(maxPerSecond):
         return rateLimitedFunction
     return decorate
 
-def parse_user_page(url):
-    """Parse a single user profile page and return their twitter handle if 
-    found on their page."""
-    u = requests.get(user_page_root_url + url)
-    if u.status_code == 200:
-        user_soup = BeautifulSoup(u.text)
-        social_links = user_soup.findAll('a', {'class':'be-font-inline social-icon'})
-        try:
-            for link in social_links:
-                match = re.search('twitter', link['href'])
-                if match:
-                    return link['href'].split('/')[-1] 
-        except:
-            #If no social links, return None
-            return None
-        #If have social links but not twitter, return None
+def _scrub_twitter_handle(handle):
+    """Clean a twitter handle to remove any extraneous symbols."""
+    if handle == '-' or handle == '#!' or handle == '':
         return None
-    else:
-        return "Error: %s" % u.status_code
+    handle.replace('@', '').replace('#!', '').replace('/', '')
+    return handle
 
 #Rate limit to 150 requests/hour for Twitter
 @RateLimited(0.04)
-def get_twitter_followers(handle):
-    """Return number of twitter handlers for a given handle."""
+def _get_twitter_followers_chunked(handle_list):
+    """Get number of twitter followers for a given list of handles. Makes request
+    in chunks of 100 to conserve API calls. 
+    Return a dict with key: handle, value: followers"""
     twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
-    try:
-        t = requests.get(twitter_url + handle)
-        if t.status_code == 200:
-            return t.json[0]['followers_count']
-        else:
-            return "Error: %s" % t.status_code
-    except:
-        #In case user is not registered anymore or Twitter 404s
-        return "FUBAR"
+    handle_text = ",".join(handle_list)
+    return_dict = {}
 
-def parse():
-    """Parse the top users page and get list of users. For each user,
-    call the parse_user_page method to get their twitter handle if exists.
-    """
+    t = requests.post(twitter_url + handle_text)
+    if t.status_code == 200:
+        #Update output list
+        for user_json in t.json:
+            # TODO: How to handle those that don't return results?
+            return_dict[user_json['screen_name']] = user_json['followers_count']
+    else:
+        #Update with errors
+        # TODO: Retry?
+        pass
 
-    #For each page, request page contents and parse
+    return return_dict
+
+def _twitterfy_chunk(chunk):
+    """Take a chunk of the user dict and update it with twitter data."""
+
+    #Mapping of handle to username to associate followers back to behance usernames
+    handle_mapping = dict((v['twitter_handle'], k) for (k, v) in chunk.items())
+    handle_list = [v['twitter_handle'] for v in chunk.values() if v['twitter_handle'] is not None]
+
+    #Call twitter API
+    twitter_followers = _get_twitter_followers_chunked(handle_list)
+
+    #Update chunk
+    for handle, followers in twitter_followers.items():
+        chunk[handle_mapping[handle]]['twitter_followers'] = followers
+
+    return chunk
+
+def parse_from_csv(csv_location):
+    """Get user twitter information from a csv file that contains list of
+    behance users and twitter names."""
+
+    #Dict to hold user data
+    users = {}
+
+    #Parse list of Behance users and twitter handles
+    with open(csv_location, 'rb') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            users[row[0]] = {}
+            users[row[0]]['twitter_handle'] = _scrub_twitter_handle(row[1])
+            users[row[0]]['behance_views'] = row[2]
+
     with open(outfile, 'wb') as of:
+        #Setup output csv
+        headers = ['Behance User Name', 'Behance Views', 'Twitter Handle',
+            'Twitter Followers']
+        writer = csv.DictWriter(of, headers)
+        writer.writerow(dict((v, v) for v in headers))
 
-        #Setup the output csv
-        writer = csv.writer(of)
-        #Write csv header
-        writer.writerow(['User Name', 'Twitter Handle', 'Number of Followers'])
+        #Walk through the csv values
+        for chunk in chunk_dict(users):
 
-        #Walk through the user pages
-        for page_num in range(start_page, number_of_pages + 1):
-            page_url = root_url + str(page_num)
-            #Get the list of users from the page
-            r = requests.get(page_url)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text)
-                #For each user, get their link and parse this out for username
-                user_links = soup.findAll('a', {'class':'user-name'})
-                for user_link in user_links:
-                    user_url = user_link['href']
-                    user_name = user_url.replace('/', '')
-                    user_twitter = parse_user_page(user_url)
-                    if user_twitter is not None:
-                        user_twitter_followers = get_twitter_followers(user_twitter)
-                    else:
-                        user_twitter_followers = "N/A"
+            #Update chunk with twitter follower counts
+            twitterfied_chunk = _twitterfy_chunk(chunk)
 
-                    print "User name: %s\tTwitter Handle: %s\t Followers: %s" % (user_name, user_twitter, user_twitter_followers)
-                    writer.writerow([user_name, user_twitter, user_twitter_followers])
-            else:
-                print "Error retrieving list of users for page %s. Error code: %s" % (page_num, r.status_code)
+            for user, user_data in twitterfied_chunk.items():
 
+                outrow = {}
+                outrow['Behance User Name'] = user
+                outrow['Behance Views '] = user_data['behance_views']
+                outrow['Twitter Handle'] = user_data['twitter_handle']
+                try:
+                    outrow['Twitter Followers'] = user_data['twitter_followers']
+                except KeyError:
+                    outrow['Twitter Followers'] = 'N/A'
+
+                writer.writerow(outrow)
 
 
 if __name__ == "__main__":
-    parse()
+    parse_from_csv(src)
