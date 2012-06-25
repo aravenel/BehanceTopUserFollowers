@@ -69,12 +69,10 @@ def _get_twitter_followers_chunked(handle_list):
     if t.status_code == 200:
         #Update output list
         for user_json in t.json:
-            # TODO: How to handle those that don't return results?
             return_dict[user_json['screen_name']] = user_json['followers_count']
     else:
         #Update with errors
-        # TODO: Retry?
-        pass
+        return_dict = dict((k, "Twitter Error: %s" % t.status_code) for k in handle_list)
 
     return return_dict
 
@@ -128,6 +126,7 @@ def parse_from_csv(csv_location):
                 outrow['Behance User Name'] = user
                 outrow['Behance Views '] = user_data['behance_views']
                 outrow['Twitter Handle'] = user_data['twitter_handle']
+                #Handle those that didn't have results
                 try:
                     outrow['Twitter Followers'] = user_data['twitter_followers']
                 except KeyError:
