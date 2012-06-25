@@ -18,7 +18,7 @@ start_page = 1
 #File location to place output
 outfile = r'/home/ravenel/code/BehanceTopUserFollowers/output.csv'
 #Location of csv file with behance names, twitter handles, views
-src = r''
+src = r'users.csv'
 
 def chunks(l, n=100):
     """Yield n-sized chunks from list l"""
@@ -61,6 +61,7 @@ def _get_twitter_followers_chunked(handle_list):
     """Get number of twitter followers for a given list of handles. Makes request
     in chunks of 100 to conserve API calls. 
     Return a dict with key: handle, value: followers"""
+    print "Getting twitter data for 100 users...",
     twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
     handle_text = ",".join(handle_list)
     return_dict = {}
@@ -73,6 +74,8 @@ def _get_twitter_followers_chunked(handle_list):
     else:
         #Update with errors
         return_dict = dict((k, "Twitter Error: %s" % t.status_code) for k in handle_list)
+
+    print "Done."
 
     return return_dict
 
@@ -120,6 +123,7 @@ def parse_from_csv(csv_location):
             #Update chunk with twitter follower counts
             twitterfied_chunk = _twitterfy_chunk(chunk)
 
+            print "Writing chunk to csv...",
             for user, user_data in twitterfied_chunk.items():
 
                 outrow = {}
@@ -133,6 +137,7 @@ def parse_from_csv(csv_location):
                     outrow['Twitter Followers'] = 'N/A'
 
                 writer.writerow(outrow)
+            print "Done."
 
 
 if __name__ == "__main__":
