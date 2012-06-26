@@ -2,6 +2,7 @@ from __future__ import division #WTF, python. Really?
 import requests
 import csv
 import time
+import re
 
 ##################################################
 #
@@ -14,8 +15,14 @@ outfile = r'/home/ravenel/code/BehanceTopUserFollowers/output.csv'
 src = r'users.csv'
 #Rate limit per hour for twitter
 rate_limit = 150
-#Dont change this
+
+##################################################
+#
+#   Don't change these
+#
+##################################################
 _rate_per_second = (rate_limit - 5) / 60 / 60
+_twitter_match = re.compile(r'([A-Za-z0-9_]+)')
 
 def chunks(l, n=100):
     """Yield n-sized chunks from list l"""
@@ -47,13 +54,19 @@ def RateLimited(maxPerSecond):
 
 def _scrub_twitter_handle(handle):
     """Clean a twitter handle to remove any extraneous symbols."""
-    if handle == '-' or handle == '#!' or handle == '':
+    #Clean it up--dirty data
+    handle = handle.strip().replace('@', '').replace('#!', '').replace('/', '')
+    #Check that it uses valid twitter characters--else return None
+    match = _twitter_match.match(handle)
+    #if handle == '-' or handle == '#!' or handle == '':
+        #return None
+    if match:
+        return handle
+    else:
         return None
-    handle.replace('@', '').replace('#!', '').replace('/', '')
-    return handle.strip()
 
 #Rate limit to 150 requests/hour for Twitter
-@RateLimited(_rate_per_second)
+#@RateLimited(_rate_per_second)
 def _get_twitter_followers_chunked(handle_list, retries=3):
     """Get number of twitter followers for a given list of handles. Makes request
     in chunks of 100 to conserve API calls. 
