@@ -83,7 +83,7 @@ def _twitterfy_chunk(chunk):
     """Take a chunk of the user dict and update it with twitter data."""
 
     #Mapping of handle to username to associate followers back to behance usernames
-    handle_mapping = dict((v['twitter_handle'].upper(), k) for (k, v) in chunk.items())
+    handle_mapping = dict((v['twitter_handle'].upper(), k) for (k, v) in chunk.items() if v['twitter_handle'] is not None)
     handle_list = [v['twitter_handle'] for v in chunk.values() if v['twitter_handle'] is not None]
 
     #Call twitter API
@@ -128,7 +128,7 @@ def parse_from_csv(csv_location):
 
                 outrow = {}
                 outrow['Behance User Name'] = user
-                outrow['Behance Views '] = user_data['behance_views']
+                outrow['Behance Views'] = user_data['behance_views']
                 outrow['Twitter Handle'] = user_data['twitter_handle']
                 #Handle those that didn't have results
                 try:
