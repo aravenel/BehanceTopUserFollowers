@@ -1,1 +1,1 @@
-Scrape the most viewed Behance users and get their Twitter handles. Then, get the number of followers for each handle. Write results to csv.
+Take a CSV of Behance usernames and Twitter handles, then get the number of followers for each user.
