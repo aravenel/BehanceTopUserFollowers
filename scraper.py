@@ -3,6 +3,8 @@ import requests
 import csv
 import time
 import re
+import os
+import logging
 
 ##################################################
 #
@@ -10,7 +12,7 @@ import re
 #
 ##################################################
 #File location to place output
-outfile = r'/home/ravenel/code/BehanceTopUserFollowers/output.csv'
+outfile = os.path.join(os.path.dirname(__file__), 'output.csv')
 #Location of csv file with behance names, twitter handles, views
 src = r'users.csv'
 #Rate limit per hour for twitter
@@ -66,7 +68,7 @@ def _scrub_twitter_handle(handle):
         return None
 
 #Rate limit to 150 requests/hour for Twitter
-#@RateLimited(_rate_per_second)
+@RateLimited(_rate_per_second)
 def _get_twitter_followers_chunked(handle_list, retries=3):
     """Get number of twitter followers for a given list of handles. Makes request
     in chunks of 100 to conserve API calls. 
@@ -106,7 +108,13 @@ def _twitterfy_chunk(chunk):
 
     #Update chunk
     for handle, followers in twitter_followers.items():
-        chunk[handle_mapping[handle.upper()]]['twitter_followers'] = followers
+        try:
+            chunk[handle_mapping[handle.upper()]]['twitter_followers'] = followers
+        except KeyError, e:
+            print "Unable to match twitter handle to username. Moving onto next."
+            logging.error(e)
+            logging.error("Unable to match twitter handle %s to username." % handle.upper())
+            logging.error("chunk[] keys: \n%s" % '\n\t'.join(chunk.keys()))
 
     return chunk
 
@@ -159,4 +167,6 @@ def parse_from_csv(csv_location):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename=os.path.join(os.path.dirname(__file__), 'log.txt'),
+            format='%(asctime)s\t%(message)s', level=logging.INFO)
     parse_from_csv(src)
