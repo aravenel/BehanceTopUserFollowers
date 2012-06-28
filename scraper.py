@@ -5,6 +5,7 @@ import time
 import re
 import os
 import logging
+import tasks
 
 ##################################################
 #
@@ -68,33 +69,33 @@ def _scrub_twitter_handle(handle):
         return None
 
 #Rate limit to 150 requests/hour for Twitter
-@RateLimited(_rate_per_second)
-def _get_twitter_followers_chunked(handle_list, retries=3):
-    """Get number of twitter followers for a given list of handles. Makes request
-    in chunks of 100 to conserve API calls. 
-    Return a dict with key: handle, value: followers"""
-    twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
-    handle_text = ",".join(handle_list)
-    return_dict = {}
-    retries_left = retries
+#@RateLimited(_rate_per_second)
+#def _get_twitter_followers_chunked(handle_list, retries=3):
+    #"""Get number of twitter followers for a given list of handles. Makes request
+    #in chunks of 100 to conserve API calls. 
+    #Return a dict with key: handle, value: followers"""
+    #twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
+    #handle_text = ",".join(handle_list)
+    #return_dict = {}
+    #retries_left = retries
 
-    while retries_left > 0:
-        t = requests.post(twitter_url + handle_text)
-        if t.status_code == 200:
-            #Update output list
-            for user_json in t.json:
-                return_dict[user_json['screen_name']] = user_json['followers_count']
-            retries_left = 0
-        else:
-            #Retry
-            retries_left -= 1
-            print "Twitter returned status of %s. %s more retries..." % (t.status_code, retries_left)
-            time.sleep(1 / _rate_per_second)
-            if retries_left ==  0:
-                #Update with errors
-                return_dict = dict((k, "Twitter Error: %s" % t.status_code) for k in handle_list)
+    #while retries_left > 0:
+        #t = requests.post(twitter_url + handle_text)
+        #if t.status_code == 200:
+            ##Update output list
+            #for user_json in t.json:
+                #return_dict[user_json['screen_name']] = user_json['followers_count']
+            #retries_left = 0
+        #else:
+            ##Retry
+            #retries_left -= 1
+            #print "Twitter returned status of %s. %s more retries..." % (t.status_code, retries_left)
+            #time.sleep(1 / _rate_per_second)
+            #if retries_left ==  0:
+                ##Update with errors
+                #return_dict = dict((k, "Twitter Error: %s" % t.status_code) for k in handle_list)
 
-    return return_dict
+    #return return_dict
 
 def _twitterfy_chunk(chunk):
     """Take a chunk of the user dict and update it with twitter data."""
@@ -104,7 +105,8 @@ def _twitterfy_chunk(chunk):
     handle_list = [v['twitter_handle'] for v in chunk.values() if v['twitter_handle'] is not None]
 
     #Call twitter API
-    twitter_followers = _get_twitter_followers_chunked(handle_list)
+    #twitter_followers = _get_twitter_followers_chunked(handle_list)
+    twitter_followers = tasks.get_twitter_followers(handle_list)
 
     #Update chunk
     for handle, followers in twitter_followers.items():
