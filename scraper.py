@@ -106,7 +106,8 @@ def _twitterfy_chunk(chunk):
 
     #Call twitter API
     #twitter_followers = _get_twitter_followers_chunked(handle_list)
-    twitter_followers = tasks.get_twitter_followers(handle_list)
+    #twitter_followers = tasks.get_twitter_followers.delay(handle_list)
+    tasks.get_twitter_followers.delay(handle_list)
 
     #Update chunk
     for handle, followers in twitter_followers.items():

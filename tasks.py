@@ -2,7 +2,7 @@ from celery.task import task
 import requests
 
 @task(max_retries=3, default_retry_delay=30)
-def get_twitter_follwers(handle_list):
+def get_twitter_followers(handle_list):
     """Get number of twitter followers for a given list of handles. Makes request
     in chunks of 100 to conserve API calls. 
     Return a dict with key: handle, value: followers"""
