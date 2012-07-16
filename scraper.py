@@ -69,7 +69,7 @@ def _scrub_twitter_handle(handle):
         return None
 
 #Rate limit to 150 requests/hour for Twitter
-#@RateLimited(_rate_per_second)
+@RateLimited(_rate_per_second)
 def _get_twitter_followers_chunked(handle_list, retries=3):
     """Get number of twitter followers for a given list of handles. Makes request
     in chunks of 100 to conserve API calls. 
