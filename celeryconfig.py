@@ -3,7 +3,7 @@
 BROKER_HOST = 'localhost'
 BROKER_PORT = 5672
 BROKER_USER = 'ravenel'
-BROKER_PASSWORD = 'eleven12'
+BROKER_PASSWORD = 'sailor'
 BROKER_VHOST = 'myvhost'
 
 CELERY_IMPORTS = ('tasks',)

@@ -70,32 +70,32 @@ def _scrub_twitter_handle(handle):
 
 #Rate limit to 150 requests/hour for Twitter
 #@RateLimited(_rate_per_second)
-#def _get_twitter_followers_chunked(handle_list, retries=3):
-    #"""Get number of twitter followers for a given list of handles. Makes request
-    #in chunks of 100 to conserve API calls. 
-    #Return a dict with key: handle, value: followers"""
-    #twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
-    #handle_text = ",".join(handle_list)
-    #return_dict = {}
-    #retries_left = retries
+def _get_twitter_followers_chunked(handle_list, retries=3):
+    """Get number of twitter followers for a given list of handles. Makes request
+    in chunks of 100 to conserve API calls. 
+    Return a dict with key: handle, value: followers"""
+    twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
+    handle_text = ",".join(handle_list)
+    return_dict = {}
+    retries_left = retries
 
-    #while retries_left > 0:
-        #t = requests.post(twitter_url + handle_text)
-        #if t.status_code == 200:
-            ##Update output list
-            #for user_json in t.json:
-                #return_dict[user_json['screen_name']] = user_json['followers_count']
-            #retries_left = 0
-        #else:
-            ##Retry
-            #retries_left -= 1
-            #print "Twitter returned status of %s. %s more retries..." % (t.status_code, retries_left)
-            #time.sleep(1 / _rate_per_second)
-            #if retries_left ==  0:
-                ##Update with errors
-                #return_dict = dict((k, "Twitter Error: %s" % t.status_code) for k in handle_list)
+    while retries_left > 0:
+        t = requests.post(twitter_url + handle_text)
+        if t.status_code == 200:
+            #Update output list
+            for user_json in t.json:
+                return_dict[user_json['screen_name']] = user_json['followers_count']
+            retries_left = 0
+        else:
+            #Retry
+            retries_left -= 1
+            print "Twitter returned status of %s. %s more retries..." % (t.status_code, retries_left)
+            time.sleep(1 / _rate_per_second)
+            if retries_left ==  0:
+                #Update with errors
+                return_dict = dict((k, "Twitter Error: %s" % t.status_code) for k in handle_list)
 
-    #return return_dict
+    return return_dict
 
 def _twitterfy_chunk(chunk):
     """Take a chunk of the user dict and update it with twitter data."""
@@ -108,18 +108,6 @@ def _twitterfy_chunk(chunk):
     #twitter_followers = _get_twitter_followers_chunked(handle_list)
     #twitter_followers = tasks.get_twitter_followers.delay(handle_list)
     tasks.get_twitter_followers.delay(handle_list)
-
-    #Update chunk
-    for handle, followers in twitter_followers.items():
-        try:
-            chunk[handle_mapping[handle.upper()]]['twitter_followers'] = followers
-        except KeyError, e:
-            print "Unable to match twitter handle to username. Moving onto next."
-            logging.error(e)
-            logging.error("Unable to match twitter handle %s to username." % handle.upper())
-            logging.error("chunk[] keys: \n%s" % '\n\t'.join(chunk.keys()))
-
-    return chunk
 
 def parse_from_csv(csv_location):
     """Get user twitter information from a csv file that contains list of
@@ -151,22 +139,22 @@ def parse_from_csv(csv_location):
             print "Parsing 100 users...",
 
             #Update chunk with twitter follower counts
-            twitterfied_chunk = _twitterfy_chunk(chunk)
+            _twitterfy_chunk(chunk)
 
-            for user, user_data in twitterfied_chunk.items():
+            #for user, user_data in twitterfied_chunk.items():
 
-                outrow = {}
-                outrow['Behance User Name'] = user
-                outrow['Behance Views'] = user_data['behance_views']
-                outrow['Twitter Handle'] = user_data['twitter_handle']
-                #Handle those that didn't have results
-                try:
-                    outrow['Twitter Followers'] = user_data['twitter_followers']
-                except KeyError:
-                    outrow['Twitter Followers'] = 'N/A'
+                #outrow = {}
+                #outrow['Behance User Name'] = user
+                #outrow['Behance Views'] = user_data['behance_views']
+                #outrow['Twitter Handle'] = user_data['twitter_handle']
+                ##Handle those that didn't have results
+                #try:
+                    #outrow['Twitter Followers'] = user_data['twitter_followers']
+                #except KeyError:
+                    #outrow['Twitter Followers'] = 'N/A'
 
-                writer.writerow(outrow)
-            print "Done."
+                #writer.writerow(outrow)
+            #print "Done."
 
 
 if __name__ == "__main__":
