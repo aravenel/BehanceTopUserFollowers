@@ -107,7 +107,8 @@ def _twitterfy_chunk(chunk):
     #Call twitter API
     #twitter_followers = _get_twitter_followers_chunked(handle_list)
     #twitter_followers = tasks.get_twitter_followers.delay(handle_list)
-    tasks.get_twitter_followers.delay(handle_list)
+    result = tasks.get_twitter_followers.delay(handle_list)
+    #print result.get(timeout=1)
 
 def parse_from_csv(csv_location):
     """Get user twitter information from a csv file that contains list of
