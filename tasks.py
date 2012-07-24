@@ -12,14 +12,20 @@ handler = logging.FileHandler(log_location)
 logger.addHandler(handler)
 
 @task(max_retries=3, default_retry_delay=30)
-def get_twitter_followers(handle_list):
+def get_twitter_followers(chunk):
     """Get number of twitter followers for a given list of handles. Makes request
     in chunks of 100 to conserve API calls. 
     Return a dict with key: handle, value: followers"""
 
+    #Mapping of handle to username to associate followers back to behance usernames
+    #Can't pass Twitter Behance usernames, so need to split them out and put 
+    #them back together again at the end
+    handle_mapping = dict((v['twitter_handle'].upper(), k) for (k, v) in chunk.items() if v['twitter_handle'] is not None)
+    handle_list = [v['twitter_handle'] for v in chunk.values() if v['twitter_handle'] is not None]
+
     twitter_url = r'https://api.twitter.com/1/users/lookup.json?include_entities=true&screen_name='
     handle_text = ",".join(handle_list)
-    return_dict = {}
+    twitter_followers = {}
 
     t = requests.post(twitter_url + handle_text)
     if t:
@@ -30,15 +36,24 @@ def get_twitter_followers(handle_list):
             #return t.json
             #Update output list
             for user_json in t.json:
-                return_dict[user_json['screen_name']] = user_json['followers_count']
+                twitter_followers[user_json['screen_name']] = user_json['followers_count']
         else:
             #return "Error: %s" % t.status_code
             get_twitter_followers.retry()
 
-    #Call write_to_file subtask to write results to csv
-    print return_dict
+    #Put it all back together again!
+    for handle, followers in twitter_followers.items():
+        try:
+            chunk[handle_mapping[handle.upper()]]['twitter_followers'] = followers
+        except KeyError, e:
+            print "Unable to match twitter handle to username. Moving onto next."
+            logger.error(e)
+            logger.error("Unable to match twitter handle %s to username." % handle.upper())
+            logger.error("chunk[] keys: \n%s" % '\n\t'.join(chunk.keys()))
 
-@task
+    write_to_file.subtask(chunk)
+
+@task()
 def write_to_file(chunk):
     with open(celeryconfig.csv_output, 'ab') as of:
 

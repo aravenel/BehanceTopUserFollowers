@@ -1,3 +1,5 @@
+import os
+
 #BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
 BROKER_URL = 'amqp://ravenel:sailor@localhost:5672/myvhost'
 
@@ -12,4 +14,4 @@ CELERY_IMPORTS = ('tasks',)
 #CELERYD_LOG_FILE = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'log.txt')
 
 #Location to write the output csv file--used by Celery task
-csv_output = r''
+csv_output = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'output.csv')
