@@ -30,11 +30,11 @@ def get_twitter_followers(chunk):
     handle_text = ",".join(handle_list)
     twitter_followers = {}
 
+    logger.debug("Making request to twitter API")
     t = requests.post(twitter_url + handle_text)
+    logger.debug("Request complete, returned status %s." % t.status_code)
+
     if t:
-        #logger.debug(t)
-        logger.debug("Twitter status: %s" % t.status_code)
-        #logger.debug("JSON: %s" % t.json)
         if t.status_code == 200:
             #return t.json
             #Update output list
@@ -59,6 +59,7 @@ def get_twitter_followers(chunk):
 
 @task()
 def write_to_file(chunk):
+    """Write the results of get_twitter_followers task to csv file."""
     headers = ['Behance User Name', 'Behance Views', 'Twitter Handle',
         'Twitter Followers']
 

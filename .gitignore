@@ -5,3 +5,5 @@ build
 *.csv
 log.txt
 *.log
+boto_config.py
+*.pem
