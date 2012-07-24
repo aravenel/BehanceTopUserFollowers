@@ -137,7 +137,7 @@ def parse_from_csv(csv_location):
         #Walk through the csv values
         for chunk in chunk_dict(users):
 
-            print "Parsing 100 users...",
+            print "Parsing 100 users..."
 
             #Update chunk with twitter follower counts
             _twitterfy_chunk(chunk)

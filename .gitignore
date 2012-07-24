@@ -4,3 +4,4 @@ venv
 build
 *.csv
 log.txt
+*.log
