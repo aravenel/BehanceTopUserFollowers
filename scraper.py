@@ -1,5 +1,4 @@
 from __future__ import division #WTF, python. Really?
-import requests
 import csv
 import time
 import re
@@ -89,7 +88,7 @@ def parse_from_csv(csv_location):
     for chunk in chunk_dict(users):
 
         print "parsing 100 users..."
-        tasks.get_twitter_followers(chunk)
+        tasks.get_twitter_followers.delay(chunk)
 
 if __name__ == "__main__":
     logging.basicConfig(filename=os.path.join(os.path.dirname(__file__), 'log.txt'),
