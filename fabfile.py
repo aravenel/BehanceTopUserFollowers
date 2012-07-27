@@ -285,10 +285,10 @@ def push():
 
 def pull():
     """Checkout code from git onto celery nodes."""
-    run('cd %s' % code_dir)
-    run('rm -rf *')
-    run('git clone %s' % git_repo_location)
-    run('git checkout %s' % git_branch)
+    with cd(code_dir):
+        run('rm -rf *')
+        run('git clone %s' % git_repo_location)
+        run('git checkout %s' % git_branch)
 
 
 def pushpull():
