@@ -197,10 +197,10 @@ def deploy_celery():
     run('sudo apt-get install -y python python-dev python-pip git-core')
     run('sudo pip install virtualenv')
     run('mkdir -p %s' % os.path.join(code_dir, git_repo_name))
-    run('cd %s' % os.path.join(code_dir, git_repo_name))
-    run('virtualenv venv')
-    run('source ./venv/bin/activate')
-    run('sudo pip install requests celery')
+    with cd(os.path.join(code_dir, git_repo_name)):
+        run('virtualenv venv')
+        run('source ./venv/bin/activate')
+        run('sudo pip install requests celery')
 
 
 def config_celery_workers():
@@ -280,8 +280,7 @@ def deprovision_full_system(environment='dev'):
 
 def push():
     """Push code from local repo to remote repo"""
-    local('git add . && git commit')
-    pass
+    local('git add . && git commit && git push origin %s' % git_branch)
 
 
 def pull():
