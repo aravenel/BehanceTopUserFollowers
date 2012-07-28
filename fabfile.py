@@ -75,8 +75,8 @@ def _get_hosts_by_environment(environment='dev'):
     return filtered_instances
 
 
-def _get_hosts_by_env_and_type(type_tag, environment='dev'):
-    """Return list of public dns entries of all instances with specified
+def _get_instances_by_env_and_type(type_tag, environment='dev'):
+    """Return list of all instance objects with specified
     environment and type tag. type_tag can be a string or list. If it is
     a list, will check to see if the type tag matches any value in list."""
     if type(type_tag) is not list:
@@ -85,9 +85,18 @@ def _get_hosts_by_env_and_type(type_tag, environment='dev'):
         type_tags = type_tag
 
     instances = _get_instances_by_environment(environment)
-    filtered_instances = [i.public_dns_name for i in instances if 
+    filtered_instances = [i for i in instances if 
             i.tags.get('environment') == environment and i.tags.get('type') in type_tags
             and i.state == 'running']
+    return filtered_instances
+
+
+def _get_hosts_by_env_and_type(type_tag, environment='dev'):
+    """Return list of public dns entries of all instances with specified
+    environment and type tag. type_tag can be a string or list. If it is
+    a list, will check to see if the type tag matches any value in list."""
+    instances = _get_instances_by_env_and_type(type_tag, environment)
+    filtered_instances = [i.public_dns_name for i in instances]
     return filtered_instances
 
 
@@ -203,7 +212,7 @@ def deploy_celery():
         run('sudo pip install requests celery')
 
 
-def config_celery_workers():
+def config_celery_workers(rabbitmq_priv_dns):
     """Deploy and configure code for base celery workers."""
     #Do base-worker specific configuration
     try:
@@ -214,10 +223,13 @@ def config_celery_workers():
     run('sudo mv init/celeryd /etc/init.d/celeryd')
     run('sudo mv init/celeryd.conf /etc/default/celeryd')
 
+    run('python set_celery_host %s %s %s %s' % (rabbitmq_user, rabbitmq_password,
+        rabbitmq_vhost, rabbitmq_priv_dns))
+
     run('sudo /etc/init.d/celeryd start')
 
 
-def config_celery_writers():
+def config_celery_writers(rabbitmq_priv_dns):
     """Deploy and configure code for celery writer workers."""
     #Do writer worker specific configuration
     pass
@@ -249,6 +261,10 @@ def provision_full_system(n_workers, n_writers=1, environment='dev'):
     provision_celery_writer(n_writers, environment=environment)
     print "Provisioning rabbitmq server..."
     provision_rabbitmq_server(environment=environment)
+    #Get rabbitmq host to be used to update celery settings
+    _rabbitmq_instance = _get_instances_by_env_and_type('rabbitmq', environment)
+    rabbitmq_priv_dns = _rabbitmq_instance.private_dns_name
+
     #Setup all the servers
     with settings(parallel=True): #Do these in parallel
         #Rabbitmq server
@@ -260,13 +276,13 @@ def provision_full_system(n_workers, n_writers=1, environment='dev'):
         with settings(host_string = _get_hosts_by_env_and_type('celery_worker', environment)):
             deploy_celery()
             pull()
-            config_celery_workers()
+            config_celery_workers(rabbitmq_priv_dns)
         #Celery writers
         print "Configuring celery writer..."
         with settings(host_string = _get_hosts_by_env_and_type('celery_writer', environment)):
             deploy_celery()
             pull()
-            config_celery_writers()
+            config_celery_writers(rabbitmq_priv_dns)
 
 
 def deprovision_full_system(environment='dev'):
@@ -292,4 +308,5 @@ def pull():
 
 
 def pushpull():
-    pass
+    push()
+    pull()

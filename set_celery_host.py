@@ -4,7 +4,7 @@ import sys, os
 Needed because server address will be different each time due
 to launching ad-hoc EC2 nodes."""
 
-celery_config_file_name = r'celery_config_file.py'
+celery_config_file_name = r'celeryconfig.py'
 #Don't edit this!
 celery_config_file = os.path.join(os.path.split(os.path.abspath(__file__))[0], celery_config_file_name)
 
